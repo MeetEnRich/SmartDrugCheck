@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smart Drug Check — NAFDAC Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --green:       #00a651;
+      --green-dark:  #007a3d;
+      --green-light: #e6f7ef;
+      --green-glow:  rgba(0,166,81,0.18);
+      --red:         #e03131;
+      --red-light:   #fff0f0;
+      --amber:       #f59f00;
+      --amber-light: #fff8e1;
+      --ink:         #0d1f14;
+      --ink2:        #2a3d31;
+      --muted:       #6b8070;
+      --border:      #d4e8dc;
+      --surface:     #f5faf7;
+      --white:       #ffffff;
+      --radius:      14px;
+      --shadow:      0 4px 32px rgba(0,60,20,0.10);
+      --shadow-lg:   0 12px 60px rgba(0,60,20,0.15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(0,166,81,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(0,122,61,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      background: var(--white);
+      border-bottom: 1.5px solid var(--border);
+      box-shadow: 0 2px 12px rgba(0,60,20,0.06);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--green);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--ink);
+      letter-spacing: -0.3px;
+    }
+
+    .logo-text span { color: var(--green); }
+
+    .header-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--green-dark);
+      background: var(--green-light);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 64px 20px 40px;
+    }
+
+    .hero-eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--green);
+      opacity: 0.5;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--ink);
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--green);
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    /* ── Search Card ── */
+    .search-card {
+      position: relative;
+      z-index: 2;
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--white);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+      border: 1.5px solid var(--border);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: var(--surface);
+      padding: 4px;
+      border-radius: 10px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab.active {
+      background: var(--white);
+      color: var(--green-dark);
+      box-shadow: 0 2px 8px rgba(0,60,20,0.10);
+    }
+
+    /* ── Input ── */
+    .input-group {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      padding: 14px 18px 14px 46px;
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Mono', monospace;
+      font-size: 1rem;
+      color: var(--ink);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrap input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 4px var(--green-glow);
+      background: var(--white);
+    }
+
+    .input-wrap input::placeholder {
+      color: #aac0b4;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: 0;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    .btn-search {
+      padding: 14px 28px;
+      background: var(--green);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0,166,81,0.30);
+    }
+
+    .btn-search:hover {
+      background: var(--green-dark);
+      box-shadow: 0 6px 24px rgba(0,166,81,0.40);
+    }
+
+    .btn-search:active { transform: scale(0.97); }
+
+    .btn-search:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Scan Panel ── */
+    #scan-panel { display: none; }
+
+    #scan-panel.active { display: block; }
+
+    #nrn-panel.hidden { display: none; }
+
+    .scan-box {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 40px;
+      text-align: center;
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .scan-box:hover { border-color: var(--green); background: var(--green-light); }
+
+    .scan-box .scan-icon { font-size: 40px; margin-bottom: 12px; }
+
+    .scan-box p { color: var(--muted); font-size: 0.9rem; }
+
+    #video-container { display: none; margin-top: 16px; border-radius: var(--radius); overflow: hidden; }
+    #video-container video { width: 100%; border-radius: var(--radius); }
+
+    /* ── Loading ── */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 32px;
+    }
+
+    .loading.active { display: block; }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ── Result Card ── */
+    .result { display: none; margin-top: 24px; }
+    .result.active { display: block; animation: slideUp 0.35s ease; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 24px;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border: 2px solid;
+    }
+
+    .result-header.verified {
+      background: var(--green-light);
+      border-color: var(--green);
+      color: var(--green-dark);
+    }
+
+    .result-header.not-found {
+      background: var(--red-light);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .result-header.inactive {
+      background: var(--amber-light);
+      border-color: var(--amber);
+      color: #7a5800;
+    }
+
+    .result-status-icon { font-size: 28px; }
+
+    .result-status-text h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .result-status-text p {
+      font-size: 0.82rem;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    .result-body {
+      border: 2px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius) var(--radius);
+      padding: 20px 24px;
+      background: var(--white);
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .result-field { display: flex; flex-direction: column; gap: 3px; }
+    .result-field.full { grid-column: 1 / -1; }
+
+    .field-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field-value {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.4;
+    }
+
+    .nrn-badge {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 500;
+      background: var(--green-light);
+      color: var(--green-dark);
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .status-pill {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .status-pill.active   { background: var(--green-light);  color: var(--green-dark); border: 1px solid var(--green); }
+    .status-pill.inactive { background: var(--amber-light);  color: #7a5800;           border: 1px solid var(--amber); }
+
+    /* ── Error ── */
+    .error-box {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 18px;
+      background: var(--red-light);
+      border: 1.5px solid var(--red);
+      border-radius: var(--radius);
+      color: var(--red);
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+    .error-box.active { display: flex; }
+
+    /* ── Stats strip ── */
+    .stats-strip {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 24px auto 0;
+      display: flex;
+      gap: 12px;
+    }
+
+    .stat-chip {
+      flex: 1;
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,60,20,0.05);
+    }
+
+    .stat-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--green);
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 40px 20px 24px;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    footer a { color: var(--green); text-decoration: none; }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      header { padding: 14px 20px; }
+      .search-card { padding: 20px; border-radius: 16px; }
+      .input-group { flex-direction: column; }
+      .btn-search { width: 100%; }
+      .result-grid { grid-template-columns: 1fr; }
+      .stats-strip { flex-direction: column; }
+      .hero { padding: 40px 16px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">💊</div>
+      <div class="logo-text">Smart<span>Drug</span>Check</div>
+    </div>
+    <div class="header-badge">NAFDAC GREENBOOK ✓</div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">Nigeria Drug Authentication System</div>
+    <h1>Verify Any Drug is<br/><em>NAFDAC Approved</em></h1>
+    <p>Enter a NAFDAC Registration Number or scan a barcode to instantly verify if a drug is registered and active in Nigeria's official database.</p>
+  </section>
+
+  <!-- Search Card -->
+  <main style="position:relative; z-index:2; padding: 0 20px;">
+    <div class="search-card">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" id="tab-nrn" onclick="switchTab('nrn')">
+          🔢 Enter NRN
+        </button>
+        <button class="tab" id="tab-name" onclick="switchTab('name')">
+          🔍 Drug Name
+        </button>
+        <button class="tab" id="tab-scan" onclick="switchTab('scan')">
+          📷 Scan Barcode
+        </button>
+      </div>
+
+      <!-- NRN Panel -->
+      <div id="nrn-panel">
+        <div class="input-group">
+          <div class="input-wrap">
+            <span class="input-icon">🪪</span>
+            <input type="text" id="nrn-input" placeholder="e.g. A4-1234 or 04-1234"
+              onkeydown="if(event.key==='Enter') search()" autocomplete="off" spellcheck="false"/>
+          </div>
+          <button class="btn-search" id="search-btn" onclick="search()">Verify →</button>
+        </div>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:10px;">
+          The NRN is printed on the drug label or packaging, e.g. <strong>A4-1234</strong> or <strong>04-2345</strong>
+        </p>
+      </div>
+
+      <!-- Name Panel -->
+      <div id="name-panel" style="display:none;">
+        <div class="input-group">
+          <div class="input-wrap">
+            <span class="input-icon">💊</span>
+            <input type="text" id="name-input" placeholder="e.g. Paracetamol, Amoxicillin..."
+              onkeydown="if(event.key==='Enter') searchByName()" autocomplete="off"/>
+          </div>
+          <button class="btn-search" onclick="searchByName()">Search →</button>
+        </div>
+        <p style="font-size:0.75rem; color:var(--muted); margin-top:10px;">
+          Search by product name or active ingredient
+        </p>
+      </div>
+
+      <!-- Scan Panel -->
+      <div id="scan-panel">
+        <div class="scan-box" onclick="startScan()" id="scan-trigger">
+          <div class="scan-icon">📷</div>
+          <p><strong>Tap to activate camera</strong></p>
+          <p style="margin-top:4px;">Point at the barcode on the drug package</p>
+        </div>
+        <div id="video-container">
+          <video id="video" autoplay playsinline muted></video>
+          <button onclick="stopScan()" style="width:100%; margin-top:8px; padding:10px; border:1.5px solid var(--border); background:white; border-radius:8px; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--muted);">
+            ✕ Stop Camera
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p id="loading-text">Querying NAFDAC Greenbook...</p>
+      </div>
+
+      <!-- Error -->
+      <div class="error-box" id="error-box">
+        <span>⚠️</span>
+        <span id="error-text">Something went wrong.</span>
+      </div>
+
+      <!-- Result -->
+      <div class="result" id="result">
+        <div class="result-header" id="result-header">
+          <div class="result-status-icon" id="result-icon"></div>
+          <div class="result-status-text">
+            <h3 id="result-title"></h3>
+            <p id="result-subtitle"></p>
+          </div>
+        </div>
+        <div class="result-body">
+          <div class="result-grid">
+            <div class="result-field full">
+              <span class="field-label">Product Name</span>
+              <span class="field-value" id="r-name">—</span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">NAFDAC Reg. No.</span>
+              <span class="field-value"><span class="nrn-badge" id="r-nrn">—</span></span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">Status</span>
+              <span class="field-value" id="r-status">—</span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">Active Ingredient</span>
+              <span class="field-value" id="r-ingredient">—</span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">Category</span>
+              <span class="field-value" id="r-category">—</span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">Approval Date</span>
+              <span class="field-value" id="r-approval">—</span>
+            </div>
+            <div class="result-field">
+              <span class="field-label">Expiry Date</span>
+              <span class="field-value" id="r-expiry">—</span>
+            </div>
+            <div class="result-field full">
+              <span class="field-label">Applicant / Manufacturer</span>
+              <span class="field-value" id="r-applicant">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="stats-strip">
+      <div class="stat-chip">
+        <div class="stat-number">9,059+</div>
+        <div class="stat-label">Registered Products</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-number" id="scan-count">0</div>
+        <div class="stat-label">Checks This Session</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-number" id="failed-count">0</div>
+        <div class="stat-label">Failed / Not Found</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Data sourced live from <a href="https://greenbook.nafdac.gov.ng" target="_blank">NAFDAC Greenbook</a> ·
+    Built for SmartDrugCheck Final Year Project · Nigeria 🇳🇬
+  </footer>
+
+<script>
+  // ── State ──
+  let scanCount  = 0;
+  let failCount  = 0;
+  let activeTab  = 'nrn';
+  let videoStream = null;
+
+  // ── Tab switching ──
+  function switchTab(tab) {
+    activeTab = tab;
+    ['nrn','name','scan'].forEach(t => {
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+      const panel = document.getElementById(`${t}-panel`);
+      if (panel) panel.style.display = t === tab ? 'block' : 'none';
+    });
+    hideResult();
+    if (tab !== 'scan') stopScan();
+  }
+
+  // ── Build DataTables params matching the Greenbook API ──
+  function buildParams(searchValue, searchColumn = 5) {
+    const cols = [
+      ['product_name',               'product_name',               'true',  'true'],
+      ['ingredient.ingredient_name', 'ingredient.ingredient_name', 'true',  'true'],
+      ['product_category.name',      'product_category.name',      'true',  'false'],
+      ['product_category_id',        'product_category_id',        'true',  'true'],
+      ['ingredient.synonym',         'ingredient.synonym',         'true',  'true'],
+      ['NAFDAC',                     'NAFDAC',                     'true',  'true'],
+      ['form.name',                  'form.name',                  'true',  'true'],
+      ['route.name',                 'route.name',                 'true',  'true'],
+      ['strength',                   'strength',                   'true',  'true'],
+      ['applicant.name',             'applicant.name',             'true',  'true'],
+      ['approval_date',              'approval_date',              'true',  'true'],
+      ['status',                     'status',                     'true',  'true'],
+    ];
+
+    const p = new URLSearchParams({
+      draw: 1, start: 0, length: 10,
+      'order[0][column]': 0, 'order[0][dir]': 'asc',
+      'search[value]': '', 'search[regex]': 'false',
+      search_ingredient: '',
+    });
+
+    cols.forEach(([data, name, searchable, orderable], i) => {
+      p.set(`columns[${i}][data]`,          data);
+      p.set(`columns[${i}][name]`,          name);
+      p.set(`columns[${i}][searchable]`,    searchable);
+      p.set(`columns[${i}][orderable]`,     orderable);
+      p.set(`columns[${i}][search][value]`, i === searchColumn ? searchValue : '');
+      p.set(`columns[${i}][search][regex]`, 'false');
+    });
+
+    return p.toString();
+  }
+
+  // ── Core query function ──
+  async function queryGreenbook(searchValue, searchColumn = 5) {
+    const params = buildParams(searchValue, searchColumn);
+    // In production replace this URL with your backend proxy endpoint
+    // e.g. '/api/verify?' + params
+    // Direct call shown here for demo - use backend proxy in production
+    const url = `https://greenbook.nafdac.gov.ng/?${params}`;
+
+    const res = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': 'https://greenbook.nafdac.gov.ng/',
+      }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  // ── Search by NRN ──
+  async function search() {
+    const nrn = document.getElementById('nrn-input').value.trim();
+    if (!nrn) { shakeInput('nrn-input'); return; }
+
+    showLoading('Querying NAFDAC Greenbook...');
+    hideResult(); hideError();
+
+    try {
+      const data = await queryGreenbook(nrn, 5); // column 5 = NAFDAC
+      handleResult(data, nrn);
+    } catch(e) {
+      showError('Could not reach NAFDAC Greenbook. Check your connection.');
+      logFail(nrn, 'connection_error');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ── Search by name ──
+  async function searchByName() {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { shakeInput('name-input'); return; }
+
+    showLoading('Searching by drug name...');
+    hideResult(); hideError();
+
+    try {
+      const data = await queryGreenbook(name, 0); // column 0 = product_name
+      handleResult(data, name);
+    } catch(e) {
+      showError('Could not reach NAFDAC Greenbook. Check your connection.');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ── Handle API result ──
+  function handleResult(data, query) {
+    scanCount++;
+    document.getElementById('scan-count').textContent = scanCount;
+
+    const results = data.data;
+
+    if (!results || results.length === 0) {
+      failCount++;
+      document.getElementById('failed-count').textContent = failCount;
+      logFail(query, 'not_found');
+      showNotFound(query);
+      return;
+    }
+
+    const drug = results[0];
+    showDrug(drug);
+  }
+
+  // ── Render drug result ──
+  function showDrug(drug) {
+    const isActive = drug.status === 'Active';
+    const header   = document.getElementById('result-header');
+    const icon     = document.getElementById('result-icon');
+    const title    = document.getElementById('result-title');
+    const subtitle = document.getElementById('result-subtitle');
+
+    header.className = 'result-header ' + (isActive ? 'verified' : 'inactive');
+    icon.textContent   = isActive ? '✅' : '⚠️';
+    title.textContent  = isActive ? 'NAFDAC Registered & Active' : 'Registered but Inactive';
+    subtitle.textContent = isActive
+      ? 'This product is verified in the NAFDAC Greenbook'
+      : 'Registration has lapsed — use with caution';
+
+    document.getElementById('r-name').textContent       = drug.product_name || '—';
+    document.getElementById('r-nrn').textContent        = drug.NAFDAC || '—';
+    document.getElementById('r-ingredient').textContent = drug.ingredient_name || '—';
+    document.getElementById('r-category').textContent   = drug.category_name || '—';
+    document.getElementById('r-approval').textContent   = formatDate(drug.approval_date);
+    document.getElementById('r-expiry').textContent     = formatDate(drug.expiry_date);
+    document.getElementById('r-applicant').textContent  = drug.applicant_name || '—';
+
+    const pill = `<span class="status-pill ${isActive ? 'active' : 'inactive'}">${drug.status}</span>`;
+    document.getElementById('r-status').innerHTML = pill;
+
+    document.getElementById('result').classList.add('active');
+  }
+
+  // ── Not found state ──
+  function showNotFound(query) {
+    const header = document.getElementById('result-header');
+    header.className = 'result-header not-found';
+    document.getElementById('result-icon').textContent   = '❌';
+    document.getElementById('result-title').textContent  = 'Not Found in NAFDAC Database';
+    document.getElementById('result-subtitle').textContent = `"${query}" — This product is NOT registered`;
+
+    document.getElementById('r-name').textContent       = 'Unknown';
+    document.getElementById('r-nrn').textContent        = query;
+    document.getElementById('r-ingredient').textContent = '—';
+    document.getElementById('r-category').textContent   = '—';
+    document.getElementById('r-approval').textContent   = '—';
+    document.getElementById('r-expiry').textContent     = '—';
+    document.getElementById('r-applicant').textContent  = '—';
+    document.getElementById('r-status').innerHTML       = '<span class="status-pill inactive">Not Registered</span>';
+
+    document.getElementById('result').classList.add('active');
+  }
+
+  // ── Surveillance logging (hotspot objective) ──
+  function logFail(query, reason) {
+    const log = JSON.parse(localStorage.getItem('drugcheck_fails') || '[]');
+    log.push({
+      query, reason,
+      timestamp: new Date().toISOString(),
+      // In production: also capture geolocation here
+    });
+    localStorage.setItem('drugcheck_fails', JSON.stringify(log));
+  }
+
+  // ── Camera / barcode scan (basic, extend with QuaggaJS) ──
+  async function startScan() {
+    document.getElementById('scan-trigger').style.display = 'none';
+    document.getElementById('video-container').style.display = 'block';
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      document.getElementById('video').srcObject = videoStream;
+      // 💡 To decode barcodes, add QuaggaJS:
+      // <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js">
+      // Then call Quagga.init() here with the video stream
+    } catch(e) {
+      showError('Camera access denied. Please allow camera permission.');
+      stopScan();
+    }
+  }
+
+  function stopScan() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      videoStream = null;
+    }
+    const vc = document.getElementById('video-container');
+    const st = document.getElementById('scan-trigger');
+    if (vc) vc.style.display = 'none';
+    if (st) st.style.display = 'block';
+  }
+
+  // ── UI helpers ──
+  function showLoading(msg) {
+    document.getElementById('loading-text').textContent = msg;
+    document.getElementById('loading').classList.add('active');
+    document.getElementById('search-btn').disabled = true;
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('search-btn').disabled = false;
+  }
+
+  function hideResult() {
+    document.getElementById('result').classList.remove('active');
+  }
+
+  function showError(msg) {
+    document.getElementById('error-text').textContent = msg;
+    document.getElementById('error-box').classList.add('active');
+  }
+
+  function hideError() {
+    document.getElementById('error-box').classList.remove('active');
+  }
+
+  function shakeInput(id) {
+    const el = document.getElementById(id);
+    el.style.animation = 'none';
+    el.style.borderColor = 'var(--red)';
+    setTimeout(() => el.style.borderColor = '', 1200);
+    el.focus();
+  }
+
+  function formatDate(val) {
+    if (!val || val.startsWith('-') || val === '0000-00-00') return '—';
+    const d = new Date(val);
+    return isNaN(d) ? val : d.toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' });
+  }
+</script>
+</body>
+</html>
