@@ -1,71 +1,77 @@
 # SmartDrugCheck
 
-**SmartDrugCheck** is a professional, enterprise-grade web application designed to authenticate and verify drug registration status directly against the live **NAFDAC Greenbook Database** in Nigeria.
+**SmartDrugCheck** is a professional, clinical-grade surveillance and authentication system designed to verify drug registration status against the live **NAFDAC Greenbook Database** in Nigeria.
 
-This project was built to demonstrate a full-stack, fault-tolerant web architecture as part of a final year Computer Science presentation.
+Built for high-stakes clinical environments, the system provides real-time verification, deep pharmacological data integration, and automated surveillance logging to detect potential counterfeit hotspots.
 
-## Key Features
+## 🚀 Key Features
 
-- **Live NAFDAC Verification**: The system acts as a secure backend proxy to query the official NAFDAC Greenbook API in real-time, retrieving live data.
-- **Fault-Tolerant Fallback**: In the event that the NAFDAC servers are offline or unreachable, the system automatically seamlessly fails over to an internal SQLite database (containing ~9,000 scraped records) ensuring the application never crashes during a presentation or critical lookup.
-- **Offline Greenbook Directory**: A dedicated, paginated interface allowing users to natively browse all 9,000+ local records seamlessly when offline.
-- **Advanced Directory Search**: Native search functionality to filter the local registry by drug name, NAFDAC number, or active ingredient.
-- **Clinical Dashboard UI**: A highly professional, split-screen React (Vite) interface tailored for rapid pharmacist data entry.
-- **Barcode Scanning Integration**: Connects to the device camera to read product barcodes (infrastructure ready).
-- **Digital Certificate Generation**: Search results are formatted and presented beautifully as official digital data sheets.
+### 1. Smart Surveillance & Logging
 
-## Architecture
+- **Automated Surveillance**: Every verification attempt is logged with geolocation data, timestamps, and device metadata to identify suspicious querying patterns.
+- **Administrative Intelligence**: A dedicated surveillance dashboard (via Django Admin) allows regulators to monitor failed verification attempts and geographic clusters of unverified products.
 
-This is a modern 3-Tier application:
+### 2. Clinical Intelligence
 
-1. **Frontend**: React.js (via Vite)
-   - Uses `react-router-dom` for robust, shareable URL routing.
-   - Built on modern CSS Grid/Flexbox architecture.
-   - `lucide-react` for premium SVG iconography.
-   - Zero external UI libraries (Custom Clinical Light Mode CSS).
-2. **Backend / Proxy**: Django REST Framework (Python)
-   - Serves as an API proxy to bypass browser CORS restrictions when hitting the live NAFDAC portal.
-   - Uses the `requests` library to intercept, format, and return JSON data.
-3. **Database (Fallback)**: SQLite3
-   - A localized database of records to guarantee 100% uptime in demo scenarios.
+- **Real-time Verification**: Proxies directly into the official NAFDAC Greenbook API for 100% authoritative data.
+- **Deep Pharmacological Data**: Automatically extracts **Chemical Composition**, **ATC Classification Codes**, and manufacturer details.
+- **Automated Expiry Detection**: The system parses registration dates and automatically flags products with expired or lapsed registration status with high-visibility alerts.
+- **Clinical Guidelines (SMPC)**: Direct integration with official **Summary of Product Characteristics** PDF guidelines hosted by NAFDAC.
 
-## Getting Started
+### 3. Modernized UX & Tooling
 
-The project includes automation scripts to make setup and execution effortless for presentations.
+- **Integrated Barcode Scanner**: Browser-based scanning using `@zxing/browser`—point your device camera at a product barcode for instant identification.
+- **React Router Navigation**: Persistent deep-linking between the **Verification Portal** and the **Greenbook Directory**.
+- **Paginated Local Archive**: Seamless access to a localized fallback database of ~9,000+ records for offline browsing or server-down scenarios.
 
-### 1. First Time Setup
+### 4. Security & Robustness
 
-If you are running the project for the first time, simply double-click the **`setup_project.bat`** file in the root directory.
-
-- This will automatically create your Python virtual environment.
-- It will install all backend dependencies from `requirements.txt`.
-- It will install all frontend dependencies via `npm install`.
-
-### 2. Starting the System
-
-Once setup is complete, double-click **`start_system.bat`**.
-
-- This will launch both the **Django Backend** and the **Vite Frontend** in two separate, labeled terminal windows automatically.
-- Your browser should automatically open (or you can go to `http://localhost:5173`).
+- **Input Sanitization**: Regex-based sanitization on both frontend and backend to prevent SQL injection and cross-site scripting (XSS).
+- **Fault-Tolerant Architecture**: Intelligent "Live-First, Local-Second" fallback logic ensures the application stays functional even if the national servers are unreachable.
 
 ---
 
-### Manual Commands (Fallback)
+## 🛠️ Architecture
 
-If you prefer to run things manually:
+- **Frontend**: React 18 (Vite)
+  - `react-router-dom` for application state persistence.
+  - `lucide-react` for clinical iconography.
+  - Custom refined CSS architecture for medical-density data display.
+- **Backend**: Django 6.0.5 (DRF)
+  - Authoritative API Proxy and input validation engine.
+  - SQLite3 relational engine for surveillance logging and local archiving.
+- **Deployment**: Automated batch scripts for environment initialization and dual-server orchestration.
 
-- **Backend**: `cd backend && ..\venv\Scripts\activate && python manage.py runserver`
-- **Frontend**: `cd frontend && npm run dev`
+---
 
-## Usage Flow
+## ⚙️ Getting Started
 
-1. Enter a NAFDAC Registration Number (e.g., `A4-1234`) or a drug name (e.g., `Paracetamol`) in the Main Stage input.
-2. Click **Verify**.
-3. The Django Backend intercepts the request.
-4. **Attempt 1**: The backend securely calls `https://greenbook.nafdac.gov.ng/` in real-time.
-5. **Attempt 2 (Fallback)**: If the live NAFDAC server is down or returns a connection error, the backend instantly queries the localized `db.sqlite3` database instead.
-6. The data is returned and beautifully rendered in the right-hand **Result Inspector** panel as a digital certificate.
+### 1. First Time Setup
 
-## Disclaimer
+Double-click **`setup_project.bat`**. This script:
 
-This project was developed strictly for academic demonstration purposes. Official drug verification should always be cross-referenced with the official NAFDAC portal.
+- Builds a Python virtual environment (`venv`).
+- Installs pinned, secure dependencies from `requirements.txt`.
+- Installs frontend packages via `npm`.
+
+### 2. Launch the System
+
+Double-click **`start_system.bat`**. This launches:
+
+- The **Django API Server** (Port 8000).
+- The **Vite Frontend** (Port 5173).
+- Your browser will open the portal automatically.
+
+### 3. Administrative Surveillance
+
+To view the surveillance logs and audit drug verification attempts:
+
+1. Ensure the backend is running.
+2. Visit `http://localhost:8000/admin`.
+3. Use the **Verification Logs** section to filter by status (e.g., 'not_found' to see counterfeit alerts).
+
+---
+
+## 📜 Disclaimer
+
+This system is an academic implementation designed for clinical demonstration. Official verification should always be confirmed through official NAFDAC communication channels.

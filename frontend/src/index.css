@@ -596,9 +596,9 @@ body {
 
 .data-label {
   width: 120px;
-  padding: 12px 16px;
+  padding: 8px 16px;
   background: var(--bg-color);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -610,11 +610,11 @@ body {
 
 .data-value {
   flex: 1;
-  padding: 12px 16px;
-  font-size: 0.875rem;
+  padding: 8px 16px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-main);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .data-value.mono {
@@ -918,4 +918,84 @@ body {
   color: var(--text-light);
   border-top: 1px solid var(--border-light);
   background: var(--bg-color);
+}
+
+/* -----------------------------
+ * Enhanced Clinical UI Elements
+ * ----------------------------- */
+.cert-header.danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-bottom: 2px solid #ef4444;
+}
+.cert-header.danger .cert-icon {
+  background: #ef4444;
+}
+.cert-header.danger .cert-status-badge {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fee2e2;
+}
+
+.data-row-vertical {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-row-vertical .data-label {
+  width: 100%;
+  padding: 0 0 6px 0;
+  background: transparent;
+  border-right: none;
+  border-bottom: none;
+}
+
+.data-value-box {
+  padding: 10px 12px;
+  background: #f1f5f9;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  white-space: pre-wrap;
+  border-left: 3px solid var(--border-medium);
+}
+
+.cert-actions {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.btn-outline-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  background: white;
+}
+
+.btn-outline-small:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.atc-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  background: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--border-medium);
 }

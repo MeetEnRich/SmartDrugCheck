@@ -18,6 +18,11 @@ if %errorlevel% neq 0 (
 echo [2/3] Installing Backend Dependencies...
 call venv\Scripts\activate
 pip install -r requirements.txt
+echo Running database migrations...
+cd backend
+..\venv\Scripts\activate && python manage.py makemigrations api && python manage.py migrate
+cd ..
+echo Migrations complete.
 
 :: 3. Install Node Dependencies
 echo [3/3] Installing Frontend Dependencies (NPM)...

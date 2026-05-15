@@ -155,4 +155,14 @@ if __name__ == "__main__":
     print("✅ JSON backup saved to nafdac_raw.json")
 
     save_to_sqlite(products)
+    
+    # CRITICAL FIX: Automatically run create-db.py to build the Django-compatible drugs table
+    import subprocess, sys
+    print("Building Django-compatible drugs table...")
+    try:
+        subprocess.run([sys.executable, "create-db.py"], check=True)
+        print("Done. Copy nafdac_drugs.db to the project root as db.sqlite3.")
+    except Exception as e:
+        print(f"Error building drugs table: {e}")
+        
     print("🎉 Done! Open DB Browser for SQLite to view your data.")

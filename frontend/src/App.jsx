@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserMultiFormatReader } from '@zxing/browser';
+import { NotFoundException } from '@zxing/library';
 import { 
   ShieldCheck, 
   Search, 
@@ -16,8 +18,22 @@ import {
 } from 'lucide-react';
 import './App.css';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
 function App() {
   const location = useLocation();
+  
+  // Get device geolocation once and store it
+  const [userGeo, setUserGeo] = useState('');
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserGeo(`${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)}`),
+        () => setUserGeo('unavailable')
+      );
+    }
+  }, []);
   
   // Directory State
   const [directoryData, setDirectoryData] = useState([]);
@@ -36,26 +52,62 @@ function App() {
   const [result, setResult] = useState(null);
 
   // Scanner State
-  const videoRef = useRef(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const streamRef = useRef(null);
+  const videoRef      = useRef(null);
+  const [isScanning, setIsScanning]   = useState(false);
+  const [scanStatus, setScanStatus]   = useState('');   // feedback message
+  const streamRef     = useRef(null);
+  const codeReaderRef = useRef(null);
 
   const startScan = async () => {
     setIsScanning(true);
+    setScanStatus('Activating camera...');
+    setResult(null);
+    setError('');
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const codeReader = new BrowserMultiFormatReader();
+      codeReaderRef.current = codeReader;
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-      streamRef.current = stream;
+
+      setScanStatus('Point camera at the barcode on the drug packaging...');
+
+      // Continuously decode frames from the video element
+      codeReader.decodeFromVideoElement(videoRef.current, (result, err) => {
+        if (result) {
+          const scannedText = result.getText();
+          setScanStatus(`Barcode detected: ${scannedText}`);
+          stopScan();
+          // Feed the scanned value into the NRN search
+          setNrnInput(scannedText);
+          setActiveTab('nrn');
+          handleSearch(scannedText, 'nrn');
+        }
+        if (err && !(err instanceof NotFoundException)) {
+          console.error('Scan error:', err);
+        }
+      });
+
     } catch (err) {
       console.error(err);
       setError('Camera access denied or unavailable.');
+      setScanStatus('');
       setIsScanning(false);
     }
   };
 
   const stopScan = () => {
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset?.();
+      codeReaderRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -67,7 +119,7 @@ function App() {
     setDirectoryLoading(true);
     setDirectoryError('');
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/drugs/?page=${page}&search=${encodeURIComponent(search)}`);
+      const response = await fetch(`${API_BASE}/api/drugs/?page=${page}&search=${encodeURIComponent(search)}`);
       if (!response.ok) throw new Error('Failed to fetch directory data.');
       const data = await response.json();
       setDirectoryData(data.results);
@@ -98,13 +150,28 @@ function App() {
 
   const handleSearch = async (query, type) => {
     if (!query.trim()) return;
-    
+
+    // Sanitize: strip characters that don't belong in an NRN or drug name
+    const sanitized = query.replace(/[^\w\s\-/]/g, '').trim();
+    if (!sanitized) {
+      setError('Invalid input. Please enter a valid NRN or drug name.');
+      return;
+    }
+
+    // NRN format hint validation (e.g. A4-1234 or 04-2345)
+    if (type === 'nrn' && sanitized.length < 3) {
+      setError('NRN is too short. Example format: A4-1234 or 04-2345');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setResult(null);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/verify/?${type}=${encodeURIComponent(query)}`);
+      const response = await fetch(
+        `${API_BASE}/api/verify/?${type}=${encodeURIComponent(sanitized)}&geo=${encodeURIComponent(userGeo)}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch from backend');
       }
@@ -175,19 +242,25 @@ function App() {
     }
 
     const isActive = result.status === 'Active';
+    
+    // Simple expiry check (assuming YYYY-MM-DD format)
+    const isExpired = result.expiry_date && new Date(result.expiry_date) < new Date();
 
     return (
       <div className="certificate">
-        <div className={`cert-header ${isActive ? 'valid' : 'warning'}`}>
+        <div className={`cert-header ${!isActive ? 'warning' : isExpired ? 'danger' : 'valid'}`}>
           <div className="cert-icon">
-            {isActive ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
+            {isActive && !isExpired ? <CheckCircle2 size={32} /> : <AlertCircle size={32} />}
           </div>
           <div className="cert-title-area">
-            <span className="cert-status-badge">{isActive ? 'Verified Authentic' : 'Inactive Record'}</span>
+            <span className="cert-status-badge">
+              {!isActive ? 'Inactive Record' : isExpired ? 'Critical: Expired' : 'Verified Authentic'}
+            </span>
             <h2 className="cert-title">{result.product_name || 'Unknown Product'}</h2>
             <p className="cert-subtitle">{result.applicant || 'Unknown Manufacturer'}</p>
           </div>
         </div>
+        
         <div className="cert-body">
           <div className="data-row">
             <div className="data-label">NAFDAC Reg No</div>
@@ -198,26 +271,38 @@ function App() {
             <div className="data-value">{result.active_ingredient || '—'}</div>
           </div>
           <div className="data-row">
-            <div className="data-label">Category</div>
-            <div className="data-value">{result.category || '—'}</div>
-          </div>
-          <div className="data-row">
-            <div className="data-label">Form</div>
-            <div className="data-value">{result.form || '—'}</div>
-          </div>
-          <div className="data-row">
-            <div className="data-label">Approval Date</div>
-            <div className="data-value">{result.approval_date || '—'}</div>
-          </div>
-          <div className="data-row">
-            <div className="data-label">Status</div>
-            <div className="data-value" style={{ color: isActive ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>
-              {result.status || '—'}
+            <div className="data-label">Expiry Date</div>
+            <div className="data-value" style={{ color: isExpired ? 'var(--error)' : 'inherit', fontWeight: isExpired ? 700 : 400 }}>
+              {result.expiry_date || '—'} {isExpired && '⚠️'}
             </div>
           </div>
+          
+          <div className="data-row-vertical">
+            <div className="data-label">Clinical Composition</div>
+            <div className="data-value-box">
+              {result.composition || 'Composition details not available in current record.'}
+            </div>
+          </div>
+
+          <div className="cert-actions">
+            {result.smpc_url && (
+              <a 
+                href={result.smpc_url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn-outline-small"
+              >
+                <BookOpen size={14} /> View Clinical SMPC Guidelines
+              </a>
+            )}
+            {result.atc_code && (
+              <span className="atc-badge">ATC: {result.atc_code}</span>
+            )}
+          </div>
         </div>
+
         <div className="cert-footer">
-          <span>ID: {result.id || 'N/A'}</span>
+          <span>Source: {result._source === 'live_api' ? 'NAFDAC Real-time' : 'Local Archive'}</span>
           <div className="watermark">
             <ShieldCheck size={14} /> Official Record
           </div>
@@ -316,6 +401,11 @@ function App() {
                         <video ref={videoRef} autoPlay playsInline muted></video>
                         <div className="scan-line"></div>
                       </div>
+                      {scanStatus && (
+                        <p className="help-text" style={{ marginTop: '12px', textAlign: 'center' }}>
+                          {scanStatus}
+                        </p>
+                      )}
                       <button className="btn-secondary" onClick={stopScan}>
                         Stop Camera
                       </button>
@@ -368,6 +458,13 @@ function App() {
             <div className="inspector-placeholder" style={{ padding: '64px', color: 'var(--error)' }}>
               <AlertCircle size={48} className="inspector-placeholder-icon" style={{ color: 'var(--error)' }} />
               <p>{directoryError}</p>
+              <button
+                className="btn-secondary"
+                style={{ marginTop: '24px' }}
+                onClick={() => fetchDirectory(currentPage)}
+              >
+                Retry
+              </button>
             </div>
           ) : (
             <div className="directory-wrapper">

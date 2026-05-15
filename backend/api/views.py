@@ -1,12 +1,25 @@
 import requests
 import urllib.parse
+import re
 from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Drug
-from .serializers import DrugSerializer
+from .models import Drug, VerificationLog
+from .serializers import DrugSerializer, VerificationLogSerializer
+
+def sanitize_input(value: str) -> str:
+    """
+    Removes characters that are not alphanumeric, spaces, or common NRN separators.
+    Aligns with the pseudocode in Chapter 3.5.5 and the security evaluation in 3.5.6.
+    Protects against SQL injection and path traversal.
+    """
+    if not value:
+        return value
+    # Allow: letters, digits, hyphens, forward-slash (common in NRNs like A4-1234)
+    sanitized = re.sub(r'[^\w\s\-/]', '', value)
+    return sanitized.strip()[:100]   # hard cap at 100 chars
 
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 10
@@ -83,7 +96,6 @@ def fetch_from_greenbook(query, search_column):
         
     drug = results[0]
     
-    # Map from NAFDAC nested JSON to our flat structure
     return {
         'id': drug.get('id', 0),
         'product_name': drug.get('product_name'),
@@ -92,48 +104,128 @@ def fetch_from_greenbook(query, search_column):
         'active_ingredient': drug.get('ingredient', {}).get('ingredient_name') if isinstance(drug.get('ingredient'), dict) else None,
         'category': drug.get('product_category', {}).get('name') if isinstance(drug.get('product_category'), dict) else None,
         'approval_date': drug.get('approval_date'),
+        'expiry_date': drug.get('expiry_date'),
         'form': drug.get('form', {}).get('name') if isinstance(drug.get('form'), dict) else None,
         'applicant': drug.get('applicant', {}).get('name') if isinstance(drug.get('applicant'), dict) else None,
+        'composition': drug.get('composition'),
+        'smpc_url': drug.get('smpc'),
+        'atc_code': drug.get('atc'),
     }
 
 class VerifyDrugView(APIView):
     def get(self, request):
-        nrn = request.query_params.get('nrn')
-        name = request.query_params.get('name')
-        
+        nrn         = sanitize_input(request.query_params.get('nrn', '')) or None
+        name        = sanitize_input(request.query_params.get('name', '')) or None
+        geolocation = request.query_params.get('geo', None)   # "lat,lng" sent by frontend
+        user_agent  = request.META.get('HTTP_USER_AGENT', '')
+
         if not nrn and not name:
-            return Response({"error": "Provide 'nrn' or 'name' parameter"}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Try Live Proxy first
+            return Response(
+                {"error": "Provide 'nrn' or 'name' parameter"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # --- Attempt 1: Live NAFDAC API ---
         try:
-            query = nrn if nrn else name
-            search_col = 5 if nrn else 0 # 5 is NAFDAC, 0 is product_name
-            
+            query      = nrn if nrn else name
+            search_col = 5 if nrn else 0
+
             live_result = fetch_from_greenbook(query, search_col)
-            
+
             if live_result:
                 live_result['_source'] = 'live_api'
+
+                # Log successful live lookup
+                VerificationLog.objects.create(
+                    nrn_queried  = nrn,
+                    name_queried = name,
+                    status       = 'found_live',
+                    source       = 'live_api',
+                    geolocation  = geolocation,
+                    user_agent   = user_agent,
+                )
+
                 return Response(live_result, status=status.HTTP_200_OK)
+
         except Exception as e:
             print(f"Live API error: {e}")
-            pass # Fallback to local DB
-            
-        # Fallback: Query local SQLite DB
+
+        # --- Attempt 2: Local SQLite fallback ---
         if nrn:
             try:
-                drug = Drug.objects.get(nafdac_reg_no=nrn)
+                drug       = Drug.objects.get(nafdac_reg_no=nrn)
                 serializer = DrugSerializer(drug)
-                data = serializer.data
+                data       = serializer.data
                 data['_source'] = 'local_fallback'
+
+                VerificationLog.objects.create(
+                    nrn_queried = nrn,
+                    status      = 'found_local',
+                    source      = 'local_fallback',
+                    geolocation = geolocation,
+                    user_agent  = user_agent,
+                )
+
                 return Response(data, status=status.HTTP_200_OK)
+
             except Drug.DoesNotExist:
-                return Response({"error": "Drug not found", "found": False, "_source": "local_fallback"}, status=status.HTTP_200_OK)
-                
+                # Log failed lookup — surveillance event
+                VerificationLog.objects.create(
+                    nrn_queried = nrn,
+                    status      = 'not_found',
+                    source      = 'local_fallback',
+                    geolocation = geolocation,
+                    user_agent  = user_agent,
+                )
+                return Response(
+                    {"error": "Drug not found", "found": False, "_source": "local_fallback"},
+                    status=status.HTTP_200_OK
+                )
+
         if name:
-            drugs = Drug.objects.filter(product_name__icontains=name) | Drug.objects.filter(active_ingredient__icontains=name)
+            drugs = (
+                Drug.objects.filter(product_name__icontains=name) |
+                Drug.objects.filter(active_ingredient__icontains=name)
+            )
             if drugs.exists():
                 serializer = DrugSerializer(drugs.first())
-                data = serializer.data
+                data       = serializer.data
                 data['_source'] = 'local_fallback'
+
+                VerificationLog.objects.create(
+                    name_queried = name,
+                    status       = 'found_local',
+                    source       = 'local_fallback',
+                    geolocation  = geolocation,
+                    user_agent   = user_agent,
+                )
+
                 return Response(data, status=status.HTTP_200_OK)
-            return Response({"error": "Drug not found", "found": False, "_source": "local_fallback"}, status=status.HTTP_200_OK)
+
+            # Log failed name search
+            VerificationLog.objects.create(
+                name_queried = name,
+                status       = 'not_found',
+                source       = 'local_fallback',
+                geolocation  = geolocation,
+                user_agent   = user_agent,
+            )
+            return Response(
+                {"error": "Drug not found", "found": False, "_source": "local_fallback"},
+                status=status.HTTP_200_OK
+            )
+
+class VerificationLogView(generics.ListAPIView):
+    """
+    Admin endpoint: returns all verification logs with optional filtering.
+    Used by the Admin Analytics dashboard (Chapter 3.4.3).
+    """
+    serializer_class   = VerificationLogSerializer
+    pagination_class   = StandardResultsSetPagination
+
+    def get_queryset(self):
+        queryset = VerificationLog.objects.all()
+        status_filter = self.request.query_params.get('status', None)
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
