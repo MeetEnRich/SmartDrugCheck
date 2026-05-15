@@ -936,6 +936,21 @@ body {
   border: 1px solid #fee2e2;
 }
 
+.cert-header.invalid {
+  background: #fff0f0;
+  border-bottom: 2px solid #e03131;
+}
+
+.cert-header.invalid .cert-icon {
+  background: #e03131;
+}
+
+.cert-header.invalid .cert-status-badge {
+  background: #fff0f0;
+  color: #e03131;
+  border: 1px solid #e03131;
+}
+
 .data-row-vertical {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-light);

@@ -64,11 +64,14 @@ Double-click **`start_system.bat`**. This launches:
 
 ### 3. Administrative Surveillance
 
-To view the surveillance logs and audit drug verification attempts:
+To access the surveillance log dashboard at `http://localhost:8000/admin/`, you first need to create a superuser account:
 
-1. Ensure the backend is running.
-2. Visit `http://localhost:8000/admin`.
-3. Use the **Verification Logs** section to filter by status (e.g., 'not_found' to see counterfeit alerts).
+1. Open a terminal in the `backend` folder.
+2. Activate the virtual environment: `..\venv\Scripts\activate`
+3. Run: `python manage.py createsuperuser`
+4. Follow the prompts to set a username and password.
+
+Once created, visit `http://localhost:8000/admin`, log in, and use the **Verification Logs** section to audit drug verification attempts.
 
 ---
 

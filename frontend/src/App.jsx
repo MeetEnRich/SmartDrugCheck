@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+// In development, use relative paths so Vite's proxy handles CORS.
+// In production, use the full configured base URL.
+const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || '');
 
 function App() {
   const location = useLocation();
@@ -302,7 +304,11 @@ function App() {
         </div>
 
         <div className="cert-footer">
-          <span>Source: {result._source === 'live_api' ? 'NAFDAC Real-time' : 'Local Archive'}</span>
+          <span>
+            Source: {result._source === 'live_api'
+              ? '✓ NAFDAC Live Database'
+              : '⚡ Local Greenbook Cache'}
+          </span>
           <div className="watermark">
             <ShieldCheck size={14} /> Official Record
           </div>
